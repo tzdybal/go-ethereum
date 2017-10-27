@@ -27,8 +27,9 @@ import (
  * This is a test memory database. Do not use for any production it does not get persisted
  */
 type MemDatabase struct {
-	db   map[string][]byte
-	lock sync.RWMutex
+	db    map[string][]byte
+	lock  sync.RWMutex
+	batch *memBatch
 }
 
 func NewMemDatabase() (*MemDatabase, error) {
@@ -41,7 +42,11 @@ func (db *MemDatabase) Put(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
-	db.db[string(key)] = common.CopyBytes(value)
+	if db.batch == nil {
+		db.db[string(key)] = common.CopyBytes(value)
+	} else {
+		db.batch.Put(key, value)
+	}
 	return nil
 }
 
@@ -101,6 +106,15 @@ type memBatch struct {
 	db     *MemDatabase
 	writes []kv
 	lock   sync.RWMutex
+}
+
+func (db *MemDatabase) StartBatch() {
+	db.batch = &memBatch{db: db}
+}
+
+func (db *MemDatabase) CommitBatch() error {
+	defer func() { db.batch = nil }()
+	return db.batch.Write()
 }
 
 func (b *memBatch) Put(key, value []byte) error {

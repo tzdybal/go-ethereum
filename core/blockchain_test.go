@@ -697,7 +697,7 @@ func testReorgBadHashes(t *testing.T, full bool) {
 			t.Errorf("last block hash mismatch: have: %x, want %x", ncm.CurrentBlock().Hash(), blocks[2].Header().Hash())
 		}
 		if blocks[2].Header().GasLimit.Cmp(ncm.GasLimit()) != 0 {
-			t.Errorf("last  block gasLimit mismatch: have: %x, want %x", ncm.GasLimit(), blocks[2].Header().GasLimit)
+			t.Errorf("last block gasLimit mismatch: have: %x, want %x", ncm.GasLimit(), blocks[2].Header().GasLimit)
 		}
 	} else {
 		if ncm.CurrentHeader().Hash() != headers[2].Hash() {

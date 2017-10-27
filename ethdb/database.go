@@ -45,8 +45,9 @@ var handleRatio = map[string]float64{
 }
 
 type LDBDatabase struct {
-	file string
-	db   *leveldb.DB
+	file  string
+	db    *leveldb.DB
+	batch *leveldb.Batch
 }
 
 // NewLDBDatabase returns a LevelDB wrapped object.
@@ -84,7 +85,11 @@ func NewLDBDatabase(file string, cache int, handles int) (*LDBDatabase, error) {
 
 // Put puts the given key / value to the queue
 func (self *LDBDatabase) Put(key []byte, value []byte) error {
-	return self.db.Put(key, value, nil)
+	if self.batch == nil {
+		return self.db.Put(key, value, nil)
+	}
+	self.batch.Put(key, value)
+	return nil
 }
 
 // Get returns the given key if it's present.
@@ -135,4 +140,13 @@ func (b *ldbBatch) Put(key, value []byte) error {
 
 func (b *ldbBatch) Write() error {
 	return b.db.Write(b.b, nil)
+}
+
+func (self *LDBDatabase) StartBatch() {
+	self.batch = new(leveldb.Batch)
+}
+
+func (self *LDBDatabase) CommitBatch() error {
+	defer func() { self.batch = nil }()
+	return self.db.Write(self.batch, &opt.WriteOptions{Sync: true})
 }

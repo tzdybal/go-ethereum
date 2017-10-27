@@ -139,6 +139,7 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 	localTd := hc.GetTd(hc.currentHeaderHash)
 	externTd := new(big.Int).Add(header.Difficulty, ptd)
 
+	StartWriteBatch(hc.chainDb)
 	// Irrelevant of the canonical status, write the td and header to the database
 	if err := hc.WriteTd(hash, externTd); err != nil {
 		glog.Fatalf("failed to write header total difficulty: %v", err)
@@ -161,6 +162,7 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 			headHeader = hc.GetHeader(headHash)
 			headNumber = headHeader.Number.Uint64()
 		)
+		// we're looking for data previously stored in database, so batched write shouldn't be a problem
 		for GetCanonicalHash(hc.chainDb, headNumber) != headHash {
 			if err := WriteCanonicalHash(hc.chainDb, headHash, headNumber); err != nil {
 				glog.Fatalf("failed to insert header number: %v", err)
@@ -178,11 +180,17 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 		if err := WriteHeadHeaderHash(hc.chainDb, hash); err != nil {
 			glog.Fatalf("failed to insert head header hash: %v", err)
 		}
+		if err := CommitWriteBatch(hc.chainDb); err != nil {
+			glog.Fatalf("failed to commit header chain write batch: %v", err)
+		}
 
 		hc.currentHeaderHash, hc.currentHeader = hash, types.CopyHeader(header)
 
 		status = CanonStatTy
 	} else {
+		if err := CommitWriteBatch(hc.chainDb); err != nil {
+			glog.Fatalf("failed to commit header chain write batch: %v", err)
+		}
 		status = SideStatTy
 	}
 	hc.headerCache.Add(hash, header)

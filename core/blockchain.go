@@ -144,14 +144,24 @@ func NewBlockChain(chainDb ethdb.Database, config *ChainConfig, pow pow.PoW, mux
 		return nil, ErrNoGenesis
 	}
 
+	StartWriteBatch(chainDb)
+	fmt.Println("Batch started...")
 	if err := bc.LoadLastState(false); err != nil {
 		return nil, err
 	}
 	// Check the current state of the block hashes and make sure that we do not have any of the bad blocks in our chain
 	for i := range config.BadHashes {
 		if header := bc.GetHeader(config.BadHashes[i].Hash); header != nil && header.Number.Cmp(config.BadHashes[i].Block) == 0 {
+			fmt.Printf("Found bad hash, rewinding chain to block #%d [%x…]\n", header.Number, header.ParentHash[:4])
 			glog.V(logger.Error).Infof("Found bad hash, rewinding chain to block #%d [%x…]", header.Number, header.ParentHash[:4])
-			bc.SetHead(header.Number.Uint64() - 1)
+			if err := bc.SetHead(header.Number.Uint64() - 1); err != nil {
+				return nil, err
+			}
+			fmt.Println("bc.SetHead completed...")
+			if err := CommitWriteBatch(chainDb); err != nil {
+				return nil, err
+			}
+			fmt.Println("Chain rewind was successful, resuming normal operation")
 			glog.V(logger.Error).Infoln("Chain rewind was successful, resuming normal operation")
 		}
 	}
@@ -475,7 +485,7 @@ func (self *BlockChain) LoadLastState(dryrun bool) error {
 	if fastBlockNum := self.currentFastBlock.Number().Uint64(); fastBlockNum > highestCurrentBlockFastOrFull {
 		highestCurrentBlockFastOrFull = fastBlockNum
 	}
-	if self.GetBlockByNumber(highestCurrentBlockFastOrFull + 1) != nil {
+	if self.GetBlockByNumber(highestCurrentBlockFastOrFull+1) != nil {
 		glog.V(logger.Warn).Infoln("WARNING: Found block data beyond apparent head block")
 		return recoverOrReset()
 	}
@@ -683,6 +693,7 @@ func (bc *BlockChain) Reset() error {
 // specified genesis state.
 func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 	// Dump the entire block chain and purge the caches
+	StartWriteBatch(bc.chainDb)
 	if err := bc.SetHead(0); err != nil {
 		return err
 	}
@@ -695,6 +706,9 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 	}
 	if err := WriteBlock(bc.chainDb, genesis); err != nil {
 		glog.Fatalf("failed to write genesis block: %v", err)
+	}
+	if err := CommitWriteBatch(bc.chainDb); err != nil {
+		glog.Fatalf("failed to write genesis block batch: %v", err)
 	}
 	bc.genesisBlock = genesis
 	bc.insert(bc.genesisBlock)
@@ -1267,6 +1281,7 @@ func (self *BlockChain) InsertChain(chain types.Blocks) (chainIndex int, err err
 		// coalesce logs for later processing
 		coalescedLogs = append(coalescedLogs, logs...)
 
+		StartWriteBatch(self.chainDb)
 		if err := WriteBlockReceipts(self.chainDb, block.Hash(), receipts); err != nil {
 			return i, err
 		}
@@ -1277,6 +1292,7 @@ func (self *BlockChain) InsertChain(chain types.Blocks) (chainIndex int, err err
 		if err != nil {
 			return i, err
 		}
+		CommitWriteBatch(self.chainDb)
 
 		switch status {
 		case CanonStatTy:
@@ -1285,6 +1301,7 @@ func (self *BlockChain) InsertChain(chain types.Blocks) (chainIndex int, err err
 			}
 			events = append(events, ChainEvent{block, block.Hash(), logs})
 
+			// TODO: tzdybal: following methods use batching anyways, but should be included in same batch
 			// This puts transactions in a extra db for rpc
 			if err := WriteTransactions(self.chainDb, block); err != nil {
 				return i, err

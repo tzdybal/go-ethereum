@@ -234,6 +234,14 @@ func GetReceipt(db ethdb.Database, txHash common.Hash) *types.Receipt {
 	return (*types.Receipt)(&receipt)
 }
 
+func StartWriteBatch(db ethdb.Database) {
+	db.StartBatch()
+}
+
+func CommitWriteBatch(db ethdb.Database) error {
+	return db.CommitBatch()
+}
+
 // WriteCanonicalHash stores the canonical hash for the given block number.
 func WriteCanonicalHash(db ethdb.Database, hash common.Hash, number uint64) error {
 	key := append(blockNumPrefix, big.NewInt(int64(number)).Bytes()...)
