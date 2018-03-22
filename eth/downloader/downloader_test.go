@@ -48,6 +48,8 @@ var (
 func init() {
 	glog.SetV(0)
 	glog.SetD(0)
+	glog.SetV(5)
+	glog.SetAlsoToStderr(true)
 
 	blockCacheLimit = 1024
 
