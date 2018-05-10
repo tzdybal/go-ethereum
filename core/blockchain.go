@@ -115,6 +115,10 @@ type BlockChain struct {
 	indexesDb     ethdb.Database
 }
 
+func (self *BlockChain) GetStateDB() *state.StateDB {
+	return self.stateCache
+}
+
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Ethereum Validator and
 // Processor.
@@ -898,6 +902,12 @@ func (self *BlockChain) SetProcessor(processor Processor) {
 	self.procmu.Lock()
 	defer self.procmu.Unlock()
 	self.processor = processor
+}
+
+func (self *BlockChain) GetProcessor() Processor {
+	self.procmu.Lock()
+	defer self.procmu.Unlock()
+	return self.processor
 }
 
 // SetValidator sets the validator which is used to validate incoming blocks.

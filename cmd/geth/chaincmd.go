@@ -116,7 +116,29 @@ var (
 		space limitations, or attack.
 		`,
 	}
+	tzdybalCommand = cli.Command{
+		Action: tzdybalDebug,
+		Name:   "tzdybal",
+	}
 )
+
+func tzdybalDebug(ctx *cli.Context) error {
+	fmt.Println("tzdybal!")
+	if err := setupLogging(ctx); err != nil {
+		return err
+	}
+	chain, _ := MakeChain(ctx)
+
+	block := chain.GetBlockByNumber(1000001)
+
+	rec, log, gas, err := chain.Processor().Process(block, chain.GetStateDB())
+	fmt.Println(err)
+	fmt.Println(rec)
+	fmt.Println(log)
+	fmt.Println(gas)
+
+	return nil
+}
 
 func importChain(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {

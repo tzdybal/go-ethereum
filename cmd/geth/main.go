@@ -115,6 +115,7 @@ func makeCLIApp() (app *cli.App) {
 	app.HideVersion = true // we have a command to print the version
 
 	app.Commands = []cli.Command{
+		tzdybalCommand,
 		importCommand,
 		exportCommand,
 		dumpChainConfigCommand,
@@ -351,6 +352,8 @@ func geth(ctx *cli.Context) error {
 		dispatchStatusLogs(ctx, ethe)
 	}
 	logLoggingConfiguration(ctx)
+
+	fmt.Println("tzdybal hack")
 
 	n.Wait()
 
