@@ -78,7 +78,7 @@ func (r *Receipt) RlpEncode() []byte {
 
 // String implements the Stringer interface.
 func (r *Receipt) String() string {
-	return fmt.Sprintf("receipt{med=%x cgas=%v bloom=%x logs=%v}", r.PostState, r.CumulativeGasUsed, r.Bloom, r.Logs)
+	return fmt.Sprintf("receipt{tx=%v med=%x cgas=%v bloom=%x logs=%v}", r.TxHash.Hex(), r.PostState, r.CumulativeGasUsed, r.Bloom, r.Logs)
 }
 
 // ReceiptForStorage is a wrapper around a Receipt that flattens and parses the

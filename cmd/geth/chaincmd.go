@@ -131,7 +131,16 @@ func tzdybalDebug(ctx *cli.Context) error {
 
 	block := chain.GetBlockByNumber(1000001)
 
-	rec, log, gas, err := chain.Processor().Process(block, chain.GetStateDB())
+	parent := chain.GetBlock(block.ParentHash())
+	if parent == nil {
+		return fmt.Errorf("block parent %x not found", block.ParentHash())
+	}
+	statedb, err := chain.StateAt(parent.Root())
+	if err != nil {
+		return err
+	}
+
+	rec, log, gas, err := chain.Processor().Process(block, statedb)
 	fmt.Println(err)
 	fmt.Println(rec)
 	fmt.Println(log)
