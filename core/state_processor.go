@@ -74,7 +74,6 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB) (ty
 		gp           = new(GasPool).AddGas(block.GasLimit())
 	)
 	// Iterate over and process the individual transactions
-	fmt.Println("tzdybal: for loop")
 	for i, tx := range block.Transactions() {
 		if tx.Protected() {
 			chainId := p.config.GetChainID()
@@ -114,16 +113,13 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB) (ty
 // ApplyTransactions returns the generated receipts and vm logs during the
 // execution of the state transition phase.
 func ApplyTransaction(config *ChainConfig, bc *BlockChain, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *big.Int) (*types.Receipt, vm.Logs, *big.Int, error) {
-	fmt.Println("tzdybal:1")
 	tx.SetSigner(config.GetSigner(header.Number))
 
-	fmt.Println("tzdybal:2")
 	_, gas, err := ApplyMessage(NewEnv(statedb, config, bc, tx, header), tx, gp)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	fmt.Println("tzdybal:3")
 	// Update the state with pending changes
 	usedGas.Add(usedGas, gas)
 	receipt := types.NewReceipt(statedb.IntermediateRoot(false).Bytes(), usedGas)
@@ -138,7 +134,6 @@ func ApplyTransaction(config *ChainConfig, bc *BlockChain, gp *GasPool, statedb 
 	receipt.Logs = logs
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 
-	fmt.Println(receipt)
 	glog.V(logger.Debug).Infoln(receipt)
 
 	return receipt, logs, gas, err

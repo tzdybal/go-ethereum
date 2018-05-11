@@ -18,6 +18,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -145,6 +146,9 @@ func tzdybalDebug(ctx *cli.Context) error {
 	fmt.Println(rec)
 	fmt.Println(log)
 	fmt.Println(gas)
+
+	rlp := hex.EncodeToString(rec.GetRlp(0))
+	fmt.Println(rlp)
 
 	return nil
 }

@@ -19,6 +19,9 @@ case "$(uname -s)" in
     Linux)
         OS="Linux";;
 
+	FreeBSD)
+		OS="FreeBSD";;
+
     CYGWIN*|MINGW32*|MSYS*)
         OS="Windows";;
 
@@ -59,31 +62,13 @@ if [ "$OS" == "Windows" ]; then
 	fi
 else
     ep_gopath=$GOPATH/src/github.com/ethereumproject
-	sputnikffi_path="$ep_gopath/sputnikvm-ffi"
+	sputnikffi_path="$ep_gopath/go-ethereum/vendor/github.com/ethereumproject/sputnikvm-ffi"
+	echo $ep_gopath
+	echo $sputnikffi_path
 
-	# If sputnikvmffi has already been cloned/existing
-	if [ -d "$sputnikffi_path" ]; then
-		# Ensure git is happening in svm-ffi.
-		# Update if .git exists, otherwise don't try updating. We could possibly handle git-initing and adding remote but seems
-		# like an edge case.
-		if [ -d "$sputnikffi_path/.git" ]; then
-        	cd $sputnikffi_path
-			remote_name=$(git remote -v | head -1 | awk '{print $1;}')
-			if [ ! "$remote_name" == "" ]; then
-				echo "Updating SputnikVM FFI from branch [$remote_name] ..."
-				git pull "$remote_name" master
-			fi
-		fi
-    else
-        echo "Cloning SputnikVM FFI ..."
-        cd $ep_gopath
-        git clone https://github.com/ethereumproject/sputnikvm-ffi.git
-	fi
     cd "$sputnikffi_path/c/ffi"
 	echo "Building SputnikVM FFI ..."
-    cargo build --release
-    cp $sputnikffi_path/c/ffi/target/release/libsputnikvm_ffi.a \
-        $sputnikffi_path/c/libsputnikvm.a
+	make -C "$sputnikffi_path/c/"
 
 	geth_binpath="$ep_gopath/go-ethereum/bin"
 	echo "Doing geth $OUTPUT ..."
